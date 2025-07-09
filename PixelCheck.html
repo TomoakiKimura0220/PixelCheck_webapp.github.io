@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>カメラの画素数を体験！ピクセル化スタジオ</title>
+    <script async src="https://docs.opencv.org/4.x/opencv.js"></script>
+    <style>
+        body { text-align: center; font-family: Arial, sans-serif; }
+        canvas, video { border: 1px solid #ccc; }
+        .slider-container { margin-top: 10px; }
+        label { margin-right: 10px; }
+    </style>
+</head>
+    <body>
+        <h2>📸 カメラの画素数を体験！ピクセル化スタジオ</h2>
+        <video id="videoInput" autoplay hidden></video>
+        <canvas id="canvasOutput"></canvas>
+
+        <div class="slider-container">
+            <label>横ピクセル数: <span id="widthDisplay"></span>px</label><br>
+            <input type="range" id="widthSlider" min="5" max="100" value="50">
+        </div>
+
+        <div class="slider-container">
+            <label>縦ピクセル数: <span id="heightDisplay"></span>px</label><br>
+            <input type="range" id="heightSlider" min="5" max="100" value="50">
+        </div>
+
+        <div>
+            <p>📷 カメラ解像度: <span id="cameraResolution"></span>px</p>
+            <button id="saveImage">📥画像を保存</button>
+        </div>
+
+        <script>
+            const video = document.getElementById('videoInput');
+            const canvas = document.getElementById('canvasOutput');
+            const ctx = canvas.getContext('2d');
+
+            const widthSlider = document.getElementById('widthSlider');
+            const heightSlider = document.getElementById('heightSlider');
+            const widthDisplay = document.getElementById('widthDisplay');
+            const heightDisplay = document.getElementById('heightDisplay');
+            const cameraResolution = document.getElementById('cameraResolution');
+            const saveImage = document.getElementById('saveImage');
+
+            let streaming = false;
+
+            navigator.mediaDevices.getUserMedia({ video: true })
+                .then((stream) => {
+                    video.srcObject = stream;
+                    video.play();
+                });
+
+                video.addEventListener('canplay', () => {
+                if (!streaming) {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    cameraResolution.textContent = `${video.videoWidth} × ${video.videoHeight}`;
+                    streaming = true;
+                    updateDisplay();
+                }
+            });
+
+            widthSlider.addEventListener('input', updateDisplay);
+            heightSlider.addEventListener('input', updateDisplay);
+
+            saveImage.addEventListener('click', () => {
+                const link = document.createElement('a');
+                link.href = canvas.toDataURL();
+                link.download = 'pixelated_image.png';
+                link.click();
+            });
+
+            function updateDisplay() {
+                widthDisplay.textContent = widthSlider.value;
+                heightDisplay.textContent = heightSlider.value;
+            }
+
+            function processFrame() {
+                if (!streaming) {
+                    requestAnimationFrame(processFrame);
+                    return;
+                }
+
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                let src = cv.imread(canvas);
+                
+                let pixelWidth = parseInt(widthSlider.value);
+                let pixelHeight = parseInt(heightSlider.value);
+
+                // ピクセル化処理の仕組み:
+                // 一度小さい解像度(pixelWidth × pixelHeight)に画像を縮小して情報を落とし、
+                // その後、元のサイズに戻すことで「ピクセルが荒く見える」効果を実現しています。
+                let temp = new cv.Mat();
+                cv.resize(src, temp, new cv.Size(pixelWidth, pixelHeight), 0, 0, cv.INTER_LINEAR);
+                cv.resize(temp, src, new cv.Size(src.cols, src.rows), 0, 0, cv.INTER_NEAREST);
+
+                cv.imshow(canvas, src);
+
+                src.delete(); temp.delete();
+
+                requestAnimationFrame(processFrame);
+            }
+
+            requestAnimationFrame(processFrame);
+        </script>
+    </body>
+</html>
