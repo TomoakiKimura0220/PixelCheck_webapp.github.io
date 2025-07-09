@@ -1,0 +1,2 @@
+# PixelCheck_webapp.github.io
+カメラから取得した画像に対してピクセルを強調するように見せるだけ
